@@ -596,5 +596,111 @@ footer a{color:var(--gold);text-decoration:none;}
 
 
 
+<script>
+// ════════════════════════════════════════════════════════════════
+// ▼▼▼ PASTE YOUR GOOGLE APPS SCRIPT URL BELOW (between the quotes) ▼▼▼
+var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxh4If7Lw9Scsb8WRScKDC6-voNX4byIAmtULWS4Ygf7oQA0GsYsIIHwwu_KlPCgpSXVQ/exec";
+// ▲▲▲ PASTE YOUR GOOGLE APPS SCRIPT URL ABOVE ▲▲▲
+// ════════════════════════════════════════════════════════════════
+
+// ── Payment method reveal buttons ────────────────────────────
+function showPay(type){
+  ['zelle','paypal'].forEach(function(t){
+    var p=document.getElementById('panel-'+t);
+    if(p)p.classList.remove('show');
+    var b=document.getElementById('btn-'+t);
+    if(b)b.className='pay-btn';
+  });
+  var panel=document.getElementById('panel-'+type);
+  if(panel)panel.classList.add('show');
+  document.getElementById('btn-'+type).classList.add('active-'+type);
+  var sel=document.getElementById('sel-payment');
+  if(sel)sel.value=type.toUpperCase();
+  setTimeout(function(){if(panel)panel.scrollIntoView({behavior:'smooth',block:'nearest'});},80);
+}
+function hidePay(type){
+  var p=document.getElementById('panel-'+type);
+  if(p)p.classList.remove('show');
+  var b=document.getElementById('btn-'+type);
+  if(b)b.className='pay-btn';
+}
+function showQR(type){
+  ['gcash','bpi','maya'].forEach(function(t){
+    var p=document.getElementById('qr-'+t);
+    if(p)p.classList.remove('show');
+    var b=document.getElementById('btn-'+t);
+    if(b)b.className='pay-btn';
+  });
+  var qr=document.getElementById('qr-'+type);
+  if(qr)qr.classList.add('show');
+  var btn=document.getElementById('btn-'+type);
+  if(btn)btn.classList.add('active-'+type);
+  var sel=document.getElementById('sel-payment');
+  if(sel)sel.value=type.toUpperCase();
+  if(qr)qr.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function hideQR(type){
+  var p=document.getElementById('qr-'+type);
+  if(p)p.classList.remove('show');
+  var b=document.getElementById('btn-'+type);
+  if(b)b.className='pay-btn';
+}
+function copyText(text,btn){
+  navigator.clipboard.writeText(text).then(function(){
+    var orig=btn.innerHTML;btn.innerHTML='\u2705 Copied!';
+    setTimeout(function(){btn.innerHTML=orig;},2000);
+  });
+}
+
+// ── Form submission → Google Apps Script → Google Sheet ────────
+document.addEventListener('DOMContentLoaded',function(){
+  var form=document.getElementById('order-form');
+  if(!form)return;
+  form.addEventListener('submit',async function(e){
+    e.preventDefault();
+    var btn=document.getElementById('submit-btn');
+
+    // validate
+    var fields=['name','email','phone','payment_method','reference_number','amount_paid'];
+    var missing=fields.filter(function(f){return !form.elements[f] || !form.elements[f].value.trim();});
+    if(missing.length){
+      alert('Please fill in all required fields.');
+      return;
+    }
+
+    btn.disabled=true;
+    btn.textContent='Sending\u2026';
+
+    var payload={
+      name:           form.elements['name'].value.trim(),
+      email:          form.elements['email'].value.trim(),
+      phone:          form.elements['phone'].value.trim(),
+      payment_method: form.elements['payment_method'].value,
+      reference:      form.elements['reference_number'].value.trim(),
+      amount:         form.elements['amount_paid'].value.trim(),
+      timestamp:      new Date().toLocaleString(),
+      page:           window.location.href
+    };
+
+    try{
+      var res=await fetch(APPS_SCRIPT_URL,{
+        method:'POST',
+        body:JSON.stringify(payload)
+      });
+      var json=await res.json();
+      if(json.result==='success'){
+        document.getElementById('order-form').style.display='none';
+        document.getElementById('success-box').classList.add('show');
+      } else {
+        throw new Error('Server error');
+      }
+    }catch(err){
+      btn.disabled=false;
+      btn.textContent='Submit Order';
+      alert('Something went wrong. Please email iam.mmarave@gmail.com directly with your reference number.');
+    }
+  });
+});
+</script>
 </body>
 </html>
